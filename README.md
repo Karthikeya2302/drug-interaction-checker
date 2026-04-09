@@ -187,6 +187,16 @@ Open http://127.0.0.1:5000
 | Synonym resolution | Brand to clinical name |
 | Live sources per query | PubMed + FDA always |
 
+
+---
+
+## Author
+
+**Karthikeya Thimirishetty**
+MS Computer Science — University of Alabama at Birmingham (UAB)
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](http://www.linkedin.com/in/karthikeya-thimirishetty-uab24)
+
 ---
 
 ## Disclaimer
