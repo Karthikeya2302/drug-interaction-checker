@@ -198,7 +198,11 @@ MS Computer Science — University of Alabama at Birmingham (UAB)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](http://www.linkedin.com/in/karthikeya-thimirishetty-uab24)
 
 ---
+## Demo
 
+▶️ [Watch Demo Video](https://app.guidde.com/share/playbooks/uJ9NxCof12uUHyF3RNyuYv?origin=TCRYtPia46ZdEmANPTlDUTPwsxk1&mode=videoOnly)
+
+---
 ## Disclaimer
 
 ⚕️ This tool is for informational purposes only. Always consult a licensed healthcare professional before making medical decisions.
