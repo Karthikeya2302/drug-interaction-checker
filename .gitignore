@@ -1,0 +1,27 @@
+# API keys — never commit
+.env
+
+# Virtual environment
+venv/
+
+# FAISS index — too large for GitHub
+faiss_index/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# MLflow runs
+mlruns/
+mlflow.db
+
+# Dataset — too large for GitHub
+data/
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+Desktop.ini
