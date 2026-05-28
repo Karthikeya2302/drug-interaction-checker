@@ -17,275 +17,343 @@ from src.monitoring.tracker import get_average_metrics
 
 st.set_page_config(
     page_title="Drug Interaction Checker",
-    page_icon="💊",
+    page_icon="✚",
     layout="centered"
 )
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
 :root {
-    --bg: #080c14;
-    --surface: #0d1424;
-    --surface2: #111827;
-    --border: #1e2d45;
-    --accent: #00d4ff;
-    --accent2: #0099cc;
-    --major: #ff4444;
-    --major-glow: rgba(255,68,68,0.3);
-    --moderate: #ffaa00;
-    --moderate-glow: rgba(255,170,0,0.3);
-    --minor: #00cc66;
-    --minor-glow: rgba(0,204,102,0.3);
-    --text: #e2e8f0;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface2: #f1f5f9;
+    --border: #e2e8f0;
+    --accent: #0066cc;
+    --accent-light: #e8f0fe;
+    --major: #dc2626;
+    --major-bg: #fef2f2;
+    --moderate: #d97706;
+    --moderate-bg: #fffbeb;
+    --minor: #16a34a;
+    --minor-bg: #f0fdf4;
+    --text: #0f172a;
     --text-muted: #64748b;
-    --text-dim: #334155;
 }
 
-/* Base */
+/* ── Base ── */
 .stApp {
     background: var(--bg) !important;
     font-family: 'DM Sans', sans-serif;
+    color: var(--text);
 }
-
-/* Hide streamlit default elements */
 #MainMenu, footer, header { visibility: hidden; }
 .block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 140px !important;
-    max-width: 780px !important;
+    padding-top: 0 !important;
+    padding-bottom: 130px !important;
+    max-width: 800px !important;
 }
 
-/* Title */
-.app-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    margin-bottom: 2px;
-}
-.app-subtitle {
-    font-size: 12px;
-    color: var(--text-muted);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 24px;
-}
-
-/* Divider */
-.custom-divider {
-    height: 1px;
-    background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
-    margin: 16px 0 28px 0;
-    opacity: 0.4;
-}
-
-/* Chat messages */
-[data-testid="stChatMessage"] {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
-    margin-bottom: 12px !important;
-    padding: 16px !important;
-}
-
-/* Severity badges */
-.badge-major {
-    display: inline-block;
-    background: rgba(255,68,68,0.15);
-    border: 1px solid var(--major);
-    color: var(--major);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    box-shadow: 0 0 12px var(--major-glow);
-}
-.badge-moderate {
-    display: inline-block;
-    background: rgba(255,170,0,0.15);
-    border: 1px solid var(--moderate);
-    color: var(--moderate);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    box-shadow: 0 0 12px var(--moderate-glow);
-}
-.badge-minor {
-    display: inline-block;
-    background: rgba(0,204,102,0.15);
-    border: 1px solid var(--minor);
-    color: var(--minor);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    box-shadow: 0 0 12px var(--minor-glow);
-}
-.badge-none, .badge-unknown {
-    display: inline-block;
-    background: rgba(100,116,139,0.15);
-    border: 1px solid #475569;
-    color: #94a3b8;
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-
-/* Confidence bar */
-.conf-row {
+/* ── Header ── */
+.app-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin: 8px 0 16px 0;
+    justify-content: space-between;
+    padding: 22px 0 18px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
 }
-.conf-label {
+.app-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.app-cross {
+    font-size: 24px;
+    color: var(--major);
+    line-height: 1;
+}
+.app-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.2px;
+    line-height: 1;
+}
+.app-badge {
+    background: var(--accent-light);
+    color: var(--accent);
     font-size: 11px;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+}
+
+/* ── Welcome card ── */
+.welcome-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 28px 28px 24px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.welcome-heading {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: var(--text);
+    margin: 0 0 6px 0;
+    line-height: 1.2;
+}
+.welcome-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 20px 0;
+    line-height: 1.6;
+}
+.stat-pills {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+.stat-pill {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 20px;
+}
+.examples-label {
+    font-size: 11px;
+    font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    min-width: 80px;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+}
+.example-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.example-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: default;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.example-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+}
+
+/* ── Severity badges ── */
+.badge-major {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--major-bg);
+    border: 1px solid var(--major);
+    color: var(--major);
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+.badge-moderate {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--moderate-bg);
+    border: 1px solid var(--moderate);
+    color: var(--moderate);
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+.badge-minor {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--minor-bg);
+    border: 1px solid var(--minor);
+    color: var(--minor);
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+.badge-none, .badge-unknown {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid #cbd5e1;
+    color: var(--text-muted);
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+
+/* ── Confidence bar ── */
+.conf-wrapper {
+    margin: 12px 0 18px 0;
+}
+.conf-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.conf-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+.conf-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
 }
 .conf-bar-bg {
-    flex: 1;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
+    width: 100%;
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
     overflow: hidden;
+    border: 1px solid var(--border);
 }
 .conf-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent2), var(--accent));
-    border-radius: 2px;
-}
-.conf-value {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    min-width: 36px;
-    text-align: right;
+    background: linear-gradient(90deg, #0066cc, #60a5fa);
+    border-radius: 4px;
+    transition: width 0.4s ease;
 }
 
-/* Metrics row */
+/* ── Metrics row ── */
 .metrics-row {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     margin-top: 16px;
 }
 .metric-pill {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 14px;
+    padding: 10px 14px;
     flex: 1;
     text-align: center;
 }
 .metric-pill .m-label {
     font-size: 10px;
+    font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     display: block;
 }
 .metric-pill .m-value {
-    font-family: 'Space Mono', monospace;
-    font-size: 16px;
-    color: var(--accent);
+    font-size: 18px;
     font-weight: 700;
-    display: block;
-    margin-top: 2px;
-}
-
-/* Welcome card */
-.welcome-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-}
-.welcome-card h4 {
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
     color: var(--accent);
-    margin: 0 0 12px 0;
-    letter-spacing: 1px;
-}
-.example-query {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 12px;
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s;
+    display: block;
+    margin-top: 3px;
 }
 
-/* Chat input */
-[data-testid="stChatInput"] {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
+/* ── Chat messages ── */
+[data-testid="stChatMessage"] {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 12px !important;
+    margin-bottom: 12px !important;
+    padding: 18px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+}
+
+/* ── Chat message text ── */
+[data-testid="stChatMessage"] p,
+[data-testid="stChatMessage"] li,
+[data-testid="stChatMessage"] strong {
+    color: #0f172a !important;
+}
+
+/* ── Chat input ── */
+[data-testid="stBottom"] {
+    background: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.06) !important;
+}
+section[data-testid="stBottom"] > div {
+    background: #ffffff !important;
+}
+[data-testid="stChatInput"] {
+    background: #ffffff !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
 }
 [data-testid="stChatInput"] textarea {
     color: var(--text) !important;
     font-family: 'DM Sans', sans-serif !important;
+    font-size: 14px !important;
+    background: #ffffff !important;
 }
 
-/* Footer */
+/* ── Footer ── */
 .footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--surface);
+    background: var(--bg);
     border-top: 1px solid var(--border);
-    padding: 10px 32px;
+    padding: 10px 32px 10px 32px;
     z-index: 999;
 }
-.footer-top {
+.footer-stats {
     display: flex;
-    gap: 24px;
-    align-items: center;
+    gap: 20px;
     flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-muted);
     margin-bottom: 4px;
 }
-.footer-tag {
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.5px;
-}
-.footer-tag b {
+.footer-stats span b {
     color: var(--accent);
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
+    font-weight: 600;
 }
 .footer-disclaimer {
-    font-size: 10px;
-    color: var(--text-dim);
+    font-size: 11px;
+    color: #94a3b8;
     font-style: italic;
 }
 
-/* Streamlit metrics override */
+/* ── Streamlit metric overrides ── */
 [data-testid="stMetric"] {
-    background: var(--surface2) !important;
+    background: var(--surface) !important;
     border: 1px solid var(--border) !important;
     border-radius: 8px !important;
-    padding: 8px 12px !important;
+    padding: 10px 14px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
 }
 [data-testid="stMetricLabel"] {
     color: var(--text-muted) !important;
@@ -293,7 +361,6 @@ st.markdown("""
 }
 [data-testid="stMetricValue"] {
     color: var(--accent) !important;
-    font-family: 'Space Mono', monospace !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -302,26 +369,27 @@ st.markdown("""
 def severity_badge(severity: str) -> str:
     s = severity.lower()
     labels = {
-        "major": "⬤ MAJOR",
-        "moderate": "⬤ MODERATE",
-        "minor": "⬤ MINOR",
-        "none": "⬤ NO INTERACTION",
-        "unknown": "⬤ UNKNOWN"
+        "major": "● MAJOR",
+        "moderate": "● MODERATE",
+        "minor": "● MINOR",
+        "none": "● NO INTERACTION",
+        "unknown": "● UNKNOWN"
     }
-    label = labels.get(s, "⬤ UNKNOWN")
+    label = labels.get(s, "● UNKNOWN")
     return f'<span class="badge-{s}">{label}</span>'
 
 
 def confidence_bar(conf: float) -> str:
     pct = int(conf * 100)
-    width = pct
     return f"""
-    <div class="conf-row">
-        <span class="conf-label">Confidence</span>
-        <div class="conf-bar-bg">
-            <div class="conf-bar-fill" style="width:{width}%"></div>
+    <div class="conf-wrapper">
+        <div class="conf-label-row">
+            <span class="conf-label">Confidence Score</span>
+            <span class="conf-value">{pct}%</span>
         </div>
-        <span class="conf-value">{pct}%</span>
+        <div class="conf-bar-bg">
+            <div class="conf-bar-fill" style="width:{pct}%"></div>
+        </div>
     </div>
     """
 
@@ -350,25 +418,36 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # ── Header ────────────────────────────────────────────────
-st.markdown('<div class="app-title">💊 Drug Interaction Checker</div>', unsafe_allow_html=True)
-st.markdown('<div class="app-subtitle">RAG · LangGraph · LLaMA 3.3 70B · PubMed · FDA</div>', unsafe_allow_html=True)
-st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="app-header">
+    <div class="app-header-left">
+        <span class="app-cross">✚</span>
+        <span class="app-title">Drug Interaction Checker</span>
+    </div>
+    <span class="app-badge">Clinical Decision Support</span>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Welcome card — only show when no chat history ─────────
 if not st.session_state.chat_history:
     st.markdown("""
 <div class="welcome-card">
-    <h4>// WHAT THIS DOES</h4>
-    <p style="color:#94a3b8; font-size:13px; margin-bottom:16px;">
-        Type two drug names in plain English. The system checks 191,252 known interactions, 
-        searches live PubMed research and FDA warnings, then gives you a severity-rated 
-        clinical response in seconds.
-    </p>
-    <h4>// EXAMPLE QUERIES</h4>
-    <div class="example-query">Can I take Aspirin with Warfarin?</div>
-    <div class="example-query">Is it safe to combine Metformin and Ibuprofen?</div>
-    <div class="example-query">What happens if I take Lisinopril with Potassium?</div>
-    <div class="example-query">Can I take Tylenol with Advil?</div>
+    <div class="welcome-heading">Check Drug Interactions</div>
+    <div class="welcome-sub">
+        Powered by 191,252 clinical interactions · Live PubMed · FDA Drug Labels
+    </div>
+    <div class="stat-pills">
+        <span class="stat-pill">191K Interactions</span>
+        <span class="stat-pill">Live PubMed</span>
+        <span class="stat-pill">FDA Labels</span>
+    </div>
+    <div class="examples-label">Example Queries</div>
+    <div class="example-chips">
+        <span class="example-chip">Can I take Aspirin with Warfarin?</span>
+        <span class="example-chip">Is Metformin safe with Alcohol?</span>
+        <span class="example-chip">Sertraline and Tramadol interaction?</span>
+        <span class="example-chip">Can I take Lisinopril with Potassium?</span>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -379,10 +458,10 @@ for chat in st.session_state.chat_history:
     with st.chat_message("assistant"):
         st.markdown(severity_badge(chat["severity"]), unsafe_allow_html=True)
         st.markdown(confidence_bar(chat["confidence"]), unsafe_allow_html=True)
-        st.markdown(chat["response"])
+        st.markdown(chat["response"], unsafe_allow_html=True)
 
 # ── Chat input ────────────────────────────────────────────
-user_input = st.chat_input("Ask about a drug combination...")
+user_input = st.chat_input("e.g. Can I take Warfarin with Aspirin?")
 
 if user_input:
     with st.chat_message("user"):
@@ -403,7 +482,7 @@ if user_input:
 
                 st.markdown(severity_badge(severity), unsafe_allow_html=True)
                 st.markdown(confidence_bar(confidence), unsafe_allow_html=True)
-                st.markdown(result.get("final_response", ""))
+                st.markdown(result.get("final_response", ""), unsafe_allow_html=True)
 
                 st.session_state.chat_history.append({
                     "query": user_input.strip(),
@@ -427,12 +506,12 @@ total_q = metrics.get("total_queries", 0) if metrics else 0
 
 st.markdown(f"""
 <div class="footer">
-    <div class="footer-top">
-        <span class="footer-tag"><b>MODEL</b> LLaMA 3.3 70B via Groq</span>
-        <span class="footer-tag"><b>RAG</b> FAISS + Sentence Transformers · 191,252 interactions</span>
-        <span class="footer-tag"><b>WORKFLOW</b> LangGraph 5-node pipeline</span>
-        <span class="footer-tag"><b>STATS</b> {total_q} queries · {avg_conf} avg confidence · {avg_time} avg response · {avg_faiss} avg FAISS</span>
+    <div class="footer-stats">
+        <span><b>Model</b> LLaMA 3.3 70B via Groq</span>
+        <span><b>Dataset</b> 191,252 interactions · FAISS + Sentence Transformers</span>
+        <span><b>Pipeline</b> LangGraph 5-node</span>
+        <span><b>Stats</b> {total_q} queries · {avg_conf} avg confidence · {avg_time} avg response</span>
     </div>
-    <div class="footer-disclaimer">⚕️ This tool is for informational purposes only. Always consult a licensed healthcare professional before making medical decisions.</div>
+    <div class="footer-disclaimer">⚕ For informational purposes only. Always consult a licensed healthcare professional before making medical decisions.</div>
 </div>
 """, unsafe_allow_html=True)
