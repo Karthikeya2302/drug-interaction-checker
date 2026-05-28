@@ -9,5 +9,5 @@ faiss-cpu
 pandas
 numpy
 python-dotenv
-mlflow
+langsmith
 requests

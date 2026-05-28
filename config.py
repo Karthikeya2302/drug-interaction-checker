@@ -23,8 +23,10 @@ class Config:
     # Where to save the FAISS index after building it
     FAISS_INDEX_PATH: str = "faiss_index/"
     
-    # MLflow experiment name
-    MLFLOW_EXPERIMENT: str = "drug-interaction-checker"
+    # LangSmith tracing
+    LANGSMITH_TRACING: bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
+    LANGSMITH_API_KEY: str = os.getenv("LANGCHAIN_API_KEY", "")
+    LANGSMITH_PROJECT: str = os.getenv("LANGCHAIN_PROJECT", "drug-interaction-checker")
 
 # Single instance — every file imports this one object
 config = Config()

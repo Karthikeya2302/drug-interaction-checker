@@ -1,9 +1,41 @@
-import time
-import mlflow
+from langsmith.run_trees import RunTree
 from config import config
 
-# Set up MLflow experiment once at import time
-mlflow.set_experiment(config.MLFLOW_EXPERIMENT)
+
+def log_interaction(
+    query: str,
+    drug_1: str,
+    drug_2: str,
+    faiss_hits: int,
+    pubmed_hits: int,
+    fda_found: bool,
+    severity: str,
+    confidence: float,
+    response_time: float,
+):
+    """Log a drug interaction query to LangSmith as a RunTree span."""
+    try:
+        run = RunTree(
+            name="drug-interaction-check",
+            run_type="chain",
+            project_name=config.LANGSMITH_PROJECT,
+            inputs={
+                "query": query,
+                "drug_1": drug_1,
+                "drug_2": drug_2,
+            },
+        )
+        run.end(outputs={
+            "severity": severity,
+            "confidence": confidence,
+            "faiss_hits": faiss_hits,
+            "pubmed_hits": pubmed_hits,
+            "fda_found": fda_found,
+            "response_time_seconds": response_time,
+        })
+        run.post()
+    except Exception as e:
+        print(f"  LangSmith logging failed: {e}")
 
 
 def log_interaction_check(
@@ -16,61 +48,22 @@ def log_interaction_check(
     pubmed_count: int,
     web_count: int,
     response_time: float,
-    validated: bool
+    validated: bool,
 ):
-    """
-    Log every query to MLflow.
-    Called after Node 5 completes.
-    """
-    with mlflow.start_run():
-        # Log what the user asked
-        mlflow.log_param("user_query", user_query[:250])
-        mlflow.log_param("drug_1", drug_1)
-        mlflow.log_param("drug_2", drug_2)
-        mlflow.log_param("validated", validated)
-
-        # Log what the system found
-        mlflow.log_param("severity", severity)
-
-        # Log performance metrics
-        mlflow.log_metric("confidence", confidence)
-        mlflow.log_metric("response_time_seconds", response_time)
-        mlflow.log_metric("pubmed_results_count", pubmed_count)
-        mlflow.log_metric("web_results_count", web_count)
-        mlflow.log_metric("faiss_score_top1", faiss_score)
+    """Adapter called by graph.py — maps its kwargs into log_interaction()."""
+    log_interaction(
+        query=user_query,
+        drug_1=drug_1,
+        drug_2=drug_2,
+        faiss_hits=1 if faiss_score > 0 else 0,
+        pubmed_hits=pubmed_count,
+        fda_found=web_count > 0,
+        severity=severity,
+        confidence=confidence,
+        response_time=response_time,
+    )
 
 
 def get_average_metrics() -> dict:
-    """
-    Pull average metrics from MLflow for dashboard display.
-    Shows in Streamlit sidebar.
-    """
-    try:
-        client = mlflow.tracking.MlflowClient()
-        experiment = client.get_experiment_by_name(config.MLFLOW_EXPERIMENT)
-
-        if not experiment:
-            return {}
-
-        runs = client.search_runs(
-            experiment_ids=[experiment.experiment_id],
-            max_results=100
-        )
-
-        if not runs:
-            return {}
-
-        # Calculate averages across all runs
-        confidences = [r.data.metrics.get("confidence", 0) for r in runs]
-        response_times = [r.data.metrics.get("response_time_seconds", 0) for r in runs]
-        faiss_scores = [r.data.metrics.get("faiss_score_top1", 0) for r in runs]
-
-        return {
-            "total_queries": len(runs),
-            "avg_confidence": sum(confidences) / len(confidences),
-            "avg_response_time": sum(response_times) / len(response_times),
-            "avg_faiss_score": sum(faiss_scores) / len(faiss_scores)
-        }
-
-    except Exception:
-        return {}
+    """Metrics now live in LangSmith — returns empty so the footer shows '—'."""
+    return {}

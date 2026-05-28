@@ -43,5 +43,4 @@ class DrugInteractionState(TypedDict):
     # Final formatted response shown to user
     final_response: str
 
-    # MLflow tracking — response time in seconds
     response_time: float

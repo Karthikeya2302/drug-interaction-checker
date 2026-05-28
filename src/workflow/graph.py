@@ -1,3 +1,13 @@
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
+api_key = os.getenv("LANGCHAIN_API_KEY")
+if api_key:
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = api_key
+    os.environ["LANGCHAIN_PROJECT"] = "drug-interaction-checker"
+
 from langgraph.graph import StateGraph, END
 from src.workflow.state import DrugInteractionState
 from src.workflow.nodes import (
