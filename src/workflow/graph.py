@@ -13,6 +13,7 @@ from src.workflow.state import DrugInteractionState
 from src.workflow.nodes import (
     extract_drugs,
     faiss_search,
+    grade_retrieval,
     mcp_search,
     assess_severity,
     generate_response
@@ -20,39 +21,30 @@ from src.workflow.nodes import (
 
 def build_graph():
     """
-    Assembles all 5 nodes into a LangGraph workflow.
-    Nodes 2 and 3 run in parallel.
+    Assembles the LangGraph pipeline as a linear chain.
+    extract_drugs → faiss_search → mcp_search → grade_retrieval
+    → assess_severity → generate_response
     """
 
-    # Initialize the graph with our state definition
     graph = StateGraph(DrugInteractionState)
 
-    # ── Add all 5 nodes ───────────────────────────────────
+    # ── Register nodes ────────────────────────────────────
     graph.add_node("extract_drugs", extract_drugs)
     graph.add_node("faiss_search", faiss_search)
     graph.add_node("mcp_search", mcp_search)
+    graph.add_node("grade_retrieval", grade_retrieval)
     graph.add_node("assess_severity", assess_severity)
     graph.add_node("generate_response", generate_response)
 
-    # ── Define the flow ───────────────────────────────────
-    # Start at Node 1
+    # ── Linear pipeline — exactly these edges, nothing else ──
     graph.set_entry_point("extract_drugs")
-
-    # Node 1 → Node 2 AND Node 3 in parallel
     graph.add_edge("extract_drugs", "faiss_search")
-    graph.add_edge("extract_drugs", "mcp_search")
-
-    # Both Node 2 and Node 3 → Node 4
-    graph.add_edge("faiss_search", "assess_severity")
-    graph.add_edge("mcp_search", "assess_severity")
-
-    # Node 4 → Node 5
+    graph.add_edge("faiss_search", "mcp_search")
+    graph.add_edge("mcp_search", "grade_retrieval")
+    graph.add_edge("grade_retrieval", "assess_severity")
     graph.add_edge("assess_severity", "generate_response")
-
-    # Node 5 → End
     graph.add_edge("generate_response", END)
 
-    # Compile the graph into a runnable object
     return graph.compile()
 
 
@@ -76,6 +68,9 @@ def run_interaction_check(user_query: str) -> dict:
         "drugs_validated": False,
         "validation_error": None,
         "faiss_results": [],
+        "graded_faiss_results": [],
+        "retrieval_quality": "unknown",
+        "retrieval_corrected": False,
         "pubmed_results": [],
         "web_results": [],
         "severity": "unknown",

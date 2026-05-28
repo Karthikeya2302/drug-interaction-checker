@@ -104,6 +104,43 @@ def faiss_search(state: DrugInteractionState) -> dict:
     return {"faiss_results": results}
 
 
+# ── Node 2.5 ──────────────────────────────────────────────────────────────
+def grade_retrieval(state: DrugInteractionState) -> dict:
+    """CRAG grader: filter FAISS results by similarity score."""
+    print("Node 2.5: Grading retrieval quality...")
+
+    faiss_results = state.get("faiss_results", [])
+
+    relevant = [r for r in faiss_results if r["score"] >= 0.7]
+    partial  = [r for r in faiss_results if 0.5 <= r["score"] < 0.7]
+    noise    = [r for r in faiss_results if r["score"] < 0.5]
+
+    print(f"  Relevant (>=0.7): {len(relevant)}")
+    print(f"  Partial (0.5-0.7): {len(partial)}")
+    print(f"  Noise (<0.5): {len(noise)} — discarded")
+
+    if len(relevant) >= 2:
+        graded = relevant
+        quality = "high"
+        corrected = False
+    elif len(relevant) + len(partial) >= 1:
+        graded = relevant + partial
+        quality = "medium"
+        corrected = False
+    else:
+        graded = []
+        quality = "low"
+        corrected = True
+        print("  ⚠️ Low quality retrieval — flagging for live source fallback")
+
+    return {
+        **state,
+        "graded_faiss_results": graded,
+        "retrieval_quality": quality,
+        "retrieval_corrected": corrected
+    }
+
+
 # ── Node 3 ────────────────────────────────────────────────────────────────
 def mcp_search(state: DrugInteractionState) -> dict:
     """
@@ -248,8 +285,9 @@ def assess_severity(state: DrugInteractionState) -> dict:
     if not state.get("drugs_validated"):
         return {"severity": "unknown", "confidence": 0.0}
 
-    # Combine all evidence
-    faiss_text = "\n".join([r["interaction"] for r in state.get("faiss_results", [])])
+    # Combine all evidence — prefer graded results, fall back to raw FAISS
+    graded = state.get("graded_faiss_results") or state.get("faiss_results", [])
+    faiss_text = "\n".join([r["interaction"] for r in graded])
     pubmed_text = "\n".join([r["title"] for r in state.get("pubmed_results", [])])
     web_text = "\n".join([r.get("content", "") for r in state.get("web_results", [])])
 
@@ -302,7 +340,8 @@ def generate_response(state: DrugInteractionState) -> dict:
 
     severity_raw = state.get("severity", "unknown").upper()
     confidence = state.get("confidence", 0.0)
-    faiss_results = state.get("faiss_results", [])
+    faiss_results = state.get("graded_faiss_results") or state.get("faiss_results", [])
+    retrieval_quality = state.get("retrieval_quality", "unknown")
     pubmed_papers = state.get("pubmed_results", [])
     web_sources = state.get("web_results", [])
 
@@ -372,6 +411,7 @@ Drug 1: {state['drug_1_user']} (clinical: {state['drug_1_clinical']})
 Drug 2: {state['drug_2_user']} (clinical: {state['drug_2_clinical']})
 Severity (from assessment): {severity_raw}
 Confidence score: {confidence:.2f}
+Retrieval Quality: {retrieval_quality}
 
 Top FAISS match (use this in MECHANISM):
 {top_faiss_text}

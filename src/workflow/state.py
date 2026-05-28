@@ -25,6 +25,14 @@ class DrugInteractionState(TypedDict):
     # Top 5 results from FAISS local database
     faiss_results: list
 
+    # ── Node 2.5 outputs (CRAG grader) ───────────────────
+    # FAISS results that passed relevance grading (score >= 0.5)
+    graded_faiss_results: list
+    # "high" / "medium" / "low"
+    retrieval_quality: str
+    # True when grading discarded everything and fallback was triggered
+    retrieval_corrected: bool
+
     # ── Node 3 outputs ───────────────────────────────────
     # Latest research papers from PubMed via MCP
     pubmed_results: list
