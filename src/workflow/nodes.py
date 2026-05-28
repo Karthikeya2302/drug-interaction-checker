@@ -184,47 +184,58 @@ def search_pubmed(drug_1: str, drug_2: str) -> list:
         return []
 
 
-def search_fda(drug_1: str, drug_2: str) -> list:
-    """Search FDA drug label database — free, no key required."""
+def _fetch_fda_label(drug_name: str):
+    """
+    Try three OpenFDA fields in lowercase order.
+    Returns (label_name, interaction_text) or (None, "No FDA label found").
+    """
     import requests
 
-    query = f'drug_interactions:"{drug_1}"'
-    print(f"  FDA query: {query}")
+    drug_lower = drug_name.lower()
+    url = "https://api.fda.gov/drug/label.json"
 
-    try:
-        response = requests.get(
-            "https://api.fda.gov/drug/label.json",
-            params={
-                "search": query,
-                "limit": 3
-            },
-            timeout=10
-        )
-        print(f"  FDA raw response ({response.status_code}): {response.text[:500]}")
-        data = response.json()
+    attempts = [
+        ("generic_name",  f'openfda.generic_name:"{drug_lower}"'),
+        ("brand_name",    f'openfda.brand_name:"{drug_lower}"'),
+        ("substance_name", f'openfda.substance_name:"{drug_lower}"'),
+    ]
 
-        fda_results = data.get("results", [])
-        if not fda_results:
-            return [{
-                "title": "FDA: No label found",
-                "content": "FDA: No label found",
-                "source": "FDA",
-                "url": "https://api.fda.gov"
-            }]
+    for field, query in attempts:
+        try:
+            print(f"  FDA query: {query}")
+            r = requests.get(url, params={"search": query, "limit": 1}, timeout=10)
+            print(f"  FDA raw response ({r.status_code}): {r.text[:500]}")
+            if r.status_code == 200:
+                results = r.json().get("results", [])
+                if results:
+                    data = results[0]
+                    name = data.get("openfda", {}).get(field, ["Unknown"])[0]
+                    content = data.get("drug_interactions", [""])[0][:300]
+                    return name, content
+        except Exception:
+            pass
 
-        first = fda_results[0]
-        brand_name = first.get("openfda", {}).get("brand_name", ["Unknown"])[0]
-        interaction_text = first.get("drug_interactions", ["FDA: No label found"])[0]
+    return None, "No FDA label found"
+
+
+def search_fda(drug_1: str, drug_2: str) -> list:
+    """Search FDA drug label database — free, no key required."""
+    name, content = _fetch_fda_label(drug_1)
+
+    if name is None:
         return [{
-            "title": f"FDA Label: {brand_name}",
-            "content": interaction_text[:300],
+            "title": "FDA: No label found",
+            "content": "FDA: No label found",
             "source": "FDA",
             "url": "https://api.fda.gov"
         }]
 
-    except Exception as e:
-        print(f"  FDA search failed: {e}")
-        return []
+    return [{
+        "title": f"FDA Label: {name}",
+        "content": content,
+        "source": "FDA",
+        "url": "https://api.fda.gov"
+    }]
 
 # ── Node 4 ────────────────────────────────────────────────────────────────
 def assess_severity(state: DrugInteractionState) -> dict:
@@ -278,78 +289,114 @@ Classify severity and return this exact JSON:
 
 # ── Node 5 ────────────────────────────────────────────────────────────────
 def generate_response(state: DrugInteractionState) -> dict:
-    """
-    Generate final human readable response.
-    Clean format — no disclaimer, no confidence in body.
-    """
+    """Generate final structured clinical report."""
     print("Node 5: Generating final response...")
 
     start_time = time.time()
 
-    # Handle validation failure
     if not state.get("drugs_validated"):
         return {
             "final_response": f"❌ {state.get('validation_error', 'Could not identify the drugs. Please try again.')}",
             "response_time": 0.0
         }
 
-    severity = state.get("severity", "unknown").upper()
-    faiss_count = len(state.get("faiss_results", []))
+    severity_raw = state.get("severity", "unknown").upper()
+    confidence = state.get("confidence", 0.0)
+    faiss_results = state.get("faiss_results", [])
     pubmed_papers = state.get("pubmed_results", [])
     web_sources = state.get("web_results", [])
 
-    # Format pubmed sources cleanly
-    pubmed_lines = "\n".join([
-        f"• {p['title'][:80]}... ({p.get('year', 'N/A')}) — {p['url']}"
-        for p in pubmed_papers
-    ]) or "• No recent papers found"
+    # Severity label with emoji
+    severity_badges = {
+        "MAJOR": "MAJOR 🔴",
+        "MODERATE": "MODERATE 🟡",
+        "MINOR": "MINOR 🟢",
+    }
+    severity_label = severity_badges.get(severity_raw, severity_raw)
 
-    # Format FDA sources cleanly
-    fda_lines = "\n".join([
-        f"• {w.get('title', '')[:80]}"
-        for w in web_sources
-    ]) or "• No FDA results found"
+    # FAISS confidence tier based on top score
+    top_score = faiss_results[0].get("score", 0.0) if faiss_results else 0.0
+    if top_score > 0.7:
+        faiss_confidence = "high"
+    elif top_score >= 0.5:
+        faiss_confidence = "medium"
+    else:
+        faiss_confidence = "low"
 
-    # Format local DB findings
-    local_findings = "\n".join([
-        r['interaction'][:150]
-        for r in state.get('faiss_results', [])
-    ])
+    # Top FAISS interaction text for mechanism grounding
+    top_faiss_text = faiss_results[0].get("interaction", "No local interaction text available.") if faiss_results else "No local interaction text available."
 
-    system = """You are a clinical pharmacist explaining drug interactions clearly.
-Be precise and helpful. Never give a final medical decision."""
+    from urllib.parse import quote_plus
 
-    prompt = f"""Generate a drug interaction report using this data:
+    # FDA content — first 100 chars of actual content, not title
+    fda_content = "No label found"
+    for w in web_sources:
+        raw = w.get("content", "").strip()
+        if raw and raw != "FDA: No label found":
+            fda_content = raw[:100]
+            break
+
+    # Pre-build PubMed lines with exact URLs — LLM must not touch these
+    pubmed_source_lines = []
+    pubmed_urls_list = []
+    for p in pubmed_papers:
+        title = p.get("title", "Unknown title")[:120]
+        year = p.get("year", "N/A")
+        url = p.get("url", "")
+        pubmed_source_lines.append(f"- PubMed: {title} ({year}) → {url}")
+        if url:
+            pubmed_urls_list.append(url)
+
+    if not pubmed_source_lines:
+        pubmed_source_lines = ["- PubMed: No recent papers found"]
+
+    # FDA search URL — constructed in Python, not by the LLM
+    fda_url = f"https://labels.fda.gov/search?query={quote_plus(state['drug_1_clinical'])}"
+
+    # Complete SOURCES block — built here so the LLM copies it verbatim
+    sources_block = (
+        f"- Local Database: {len(faiss_results)} matches - {faiss_confidence} confidence\n"
+        + "\n".join(pubmed_source_lines)
+        + f"\n- FDA: {fda_content}\n  → {fda_url}"
+    )
+
+    system = """You are a clinical decision support assistant.
+Your job is to explain drug interactions at a pharmacological level.
+Always explain the biological mechanism specifically — receptor binding, enzyme inhibition, metabolic pathways, pharmacokinetic effects.
+Never say "consult a doctor" as the only recommendation — always include at least one specific clinical action.
+Severity must exactly match what you are given. Output only the structured report, no preamble, no closing remarks."""
+
+    prompt = f"""Generate a drug interaction report using the data below.
 
 Drug 1: {state['drug_1_user']} (clinical: {state['drug_1_clinical']})
 Drug 2: {state['drug_2_user']} (clinical: {state['drug_2_clinical']})
-Severity: {severity}
+Severity (from assessment): {severity_raw}
+Confidence score: {confidence:.2f}
 
-Local Database ({faiss_count} matches):
-{local_findings}
+Top FAISS match (use this in MECHANISM):
+{top_faiss_text}
 
-PubMed Research:
-{pubmed_lines}
+Use EXACTLY these PubMed URLs, do not modify them:
+{chr(10).join(pubmed_urls_list) if pubmed_urls_list else "None"}
 
-FDA Sources:
-{fda_lines}
+Output this structure EXACTLY — no extra text, no deviation:
 
-Format your response EXACTLY like this — no extra text, no deviation, no disclaimer at end:
+SEVERITY: {severity_label}
 
-**Drugs:** {state['drug_1_user']} ({state['drug_1_clinical']}) + {state['drug_2_user']} ({state['drug_2_clinical']})
+DRUGS: {state['drug_1_user']} + {state['drug_2_user']}
 
-**What happens:**
-[2-3 sentences explaining the interaction in plain English]
+MECHANISM:
+[2-3 sentences explaining WHY this interaction happens at a biological/pharmacological level. Be specific. Reference the top FAISS result above. Mention enzymes, receptors, or pathways by name.]
 
-**Recommendation:**
-- [action 1]
-- [action 2]
-- [action 3]
+WHAT TO DO:
+- [Specific clinical action 1]
+- [Specific clinical action 2]
+- [Specific clinical action 3]
 
-**Sources:**
-- Local Drug Database — {faiss_count} matches
-{pubmed_lines}
-{fda_lines}"""
+SOURCES:
+{sources_block}
+
+CONFIDENCE: {int(confidence * 100)}%"""
 
     response = call_llm(prompt, system)
     response_time = time.time() - start_time
