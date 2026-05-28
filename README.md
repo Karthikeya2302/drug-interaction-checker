@@ -1,13 +1,6 @@
 # 💊 Drug Interaction Checker
 
 > AI-powered clinical decision support system for real-time drug interaction analysis — built with Corrective RAG, LangGraph, and live biomedical data sources.
-
-![Python](https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python)
-![LangGraph](https://img.shields.io/badge/LangGraph-5--node%20pipeline-orange?style=flat-square)
-![LLM](https://img.shields.io/badge/LLM-LLaMA%203.3%2070B%20via%20Groq-purple?style=flat-square)
-![RAG](https://img.shields.io/badge/RAG-Corrective%20RAG-green?style=flat-square)
-![Tracking](https://img.shields.io/badge/Tracking-LangSmith-yellow?style=flat-square)
-
 ---
 
 ## What It Does
@@ -225,7 +218,6 @@ The OpenFDA API requires **lowercase** drug name queries against `openfda.generi
 
 **Karthikeya Thimirishetty**  
 MS Computer Science — University of Alabama at Birmingham (UAB)  
-[GitHub](https://github.com/Karthikeya2302) 
 
 ---
 
