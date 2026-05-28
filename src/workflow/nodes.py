@@ -188,29 +188,39 @@ def search_fda(drug_1: str, drug_2: str) -> list:
     """Search FDA drug label database — free, no key required."""
     import requests
 
+    query = f'drug_interactions:"{drug_1}"'
+    print(f"  FDA query: {query}")
+
     try:
         response = requests.get(
             "https://api.fda.gov/drug/label.json",
             params={
-                "search": f"drug_interactions:{drug_1} {drug_2}",
+                "search": query,
                 "limit": 3
             },
             timeout=10
         )
+        print(f"  FDA raw response ({response.status_code}): {response.text[:500]}")
         data = response.json()
 
-        results = []
-        for item in data.get("results", []):
-            brand_name = item.get("openfda", {}).get("brand_name", ["Unknown"])[0]
-            interaction_text = item.get("drug_interactions", [""])[0]
-            results.append({
-                "title": f"FDA Label: {brand_name}",
-                "content": interaction_text[:300],
+        fda_results = data.get("results", [])
+        if not fda_results:
+            return [{
+                "title": "FDA: No label found",
+                "content": "FDA: No label found",
                 "source": "FDA",
-                "url": "https://fda.gov"
-            })
+                "url": "https://api.fda.gov"
+            }]
 
-        return results
+        first = fda_results[0]
+        brand_name = first.get("openfda", {}).get("brand_name", ["Unknown"])[0]
+        interaction_text = first.get("drug_interactions", ["FDA: No label found"])[0]
+        return [{
+            "title": f"FDA Label: {brand_name}",
+            "content": interaction_text[:300],
+            "source": "FDA",
+            "url": "https://api.fda.gov"
+        }]
 
     except Exception as e:
         print(f"  FDA search failed: {e}")
